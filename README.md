@@ -1,0 +1,1 @@
+Implementação dos trabalhos práticos e listas de exercícios da disciplina de Método de Elementos Finitos (MEF) do Programa de Pós-Graduação em Engenharia Elétrica da Universidade Federal de Minas Gerais (PPGEE-UFMG) do segundo semestre de 2024.
