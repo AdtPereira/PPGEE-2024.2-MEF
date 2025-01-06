@@ -99,7 +99,7 @@ print("Nós dos elementos (elementNodeTags):", elementNodeTags)
 
 print("#--------------------------------------------------#")
 # Visualizar a malha no ambiente Gmsh (opcional)
-# gmsh.fltk.run()
+gmsh.fltk.run()
 
 # Finalizar o Gmsh
 gmsh.finalize()

@@ -6,8 +6,8 @@ $PhysicalNames
 1 101 "circular_scatterer"
 1 102 "inner_truncated_domain"
 1 103 "outer_truncated_domain"
-2 201 "PML"
-2 202 "free_space"
+2 201 "omega_pml"
+2 202 "omega_fs"
 $EndPhysicalNames
 $Entities
 9 9 2 0

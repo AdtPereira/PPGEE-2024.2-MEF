@@ -4,7 +4,7 @@ $EndMeshFormat
 $PhysicalNames
 5
 1 101 "Az_0"
-1 102 "Az_0.05"
+1 102 "Az_0.5a"
 2 201 "cavity"
 2 202 "magnetic_shell"
 2 203 "free_space"
