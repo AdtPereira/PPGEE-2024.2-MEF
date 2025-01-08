@@ -3,7 +3,7 @@ $MeshFormat
 $EndMeshFormat
 $PhysicalNames
 3
-1 101 "circular_scatterer"
+1 101 "scatterer"
 1 102 "truncated_domain"
 2 201 "free_space"
 $EndPhysicalNames

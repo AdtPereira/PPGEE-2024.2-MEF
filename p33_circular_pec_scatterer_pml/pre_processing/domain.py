@@ -18,10 +18,8 @@ BOUNDARY = [{'tag': 101, 'type': 'Dirichlet', 'value': None, 'name': 'circular_s
             {'tag': 102, 'type': 'PML', 'value': None, 'name': 'inner_truncated_domain'},
             {'tag': 103, 'type': 'PML', 'value': None, 'name': 'outer_truncated_domain'}]
 
-MATERIAL = [{'tag': 201, 'name': 'PML',
-             'relative_magnetic_permeability': 1, 'relative_electric_permittivity': 1},
-             {'tag': 202, 'name': 'free_space',
-             'relative_magnetic_permeability': 1, 'relative_electric_permittivity': 1}]
+MATERIAL = [{'tag': 201, 'name': 'free_space', 'relative_magnetic_permeability': 1, 'relative_electric_permittivity': 1},
+             {'tag': 202, 'name': 'pml', 'relative_magnetic_permeability': 1, 'relative_electric_permittivity': 1}]
 
 RADII = {'a': WAVELENGTH/2, 
             'R1': WAVELENGTH * 0.75, 'R2': WAVELENGTH, 
@@ -54,17 +52,19 @@ rect_inner = factory.addRectangle(-x0, -y0, 0, 2 * x0, 2 * y0)
 disk = factory.addDisk(0, 0, 0, ra, ra)
 
 # Subtrair o retângulo interno do retângulo externo
-outDimTags_plm_omega, _ = factory.cut([(2, rect_outer)], [(2, rect_inner)], removeTool=False)
+outDimTags_omega_plm, _ = factory.cut([(2, rect_outer)], [(2, rect_inner)], removeTool=False)
+print("outDimTags_omega_plm:", outDimTags_omega_plm)
 
 # Subtrair o furo circular do retângulo interno
-outDimTags_fs_omega, _ = factory.cut([(2, rect_inner)], [(2, disk)], removeTool=True)
+outDimTags_omega_fs, _ = factory.cut([(2, rect_inner)], [(2, disk)], removeTool=True)
+print("outDimTags_omega_fs:", outDimTags_omega_fs)
 
 # Sincronizar após o corte do retângulo interno
 factory.synchronize()
 
 # Obter os contornos (curvas, dim=1) de cada superfície
-boundary_pml_ext = gmsh.model.getBoundary(outDimTags_plm_omega, oriented=True, recursive=False)
-boundary_pml_inn = gmsh.model.getBoundary(outDimTags_fs_omega, oriented=True, recursive=False)
+boundary_pml_ext = gmsh.model.getBoundary(outDimTags_omega_plm, oriented=True, recursive=False)
+boundary_pml_inn = gmsh.model.getBoundary(outDimTags_omega_fs, oriented=True, recursive=False)
 
 # Exibir os TAGs das curvas associadas a cada contorno
 print("Curvas do contorno externo (rect_outer):", boundary_pml_ext)
@@ -82,10 +82,10 @@ for i, CurveTagList in enumerate([tagList_scatterer, tagList_pml_inn, tagList_pm
 
 # Adicionar grupos físicos para superfícies (Dim=2)	    
 print("Grupos físicos de Dim=2")
-for i, SurfaceList in enumerate([outDimTags_plm_omega, outDimTags_fs_omega]):
-    SurfaceTagList = [DimTag[1] for DimTag in SurfaceList]
-    print(MATERIAL[i]['tag'], SurfaceTagList)
-    gmsh.model.addPhysicalGroup(2, SurfaceTagList, tag=MATERIAL[i]['tag'], name=MATERIAL[i]['name'])
+# for i, SurfaceList in enumerate([outDimTags_omega_fs, outDimTags_omega_plm]):
+#     SurfaceTagList = [DimTag[1] for DimTag in SurfaceList]
+#     print(MATERIAL[i]['tag'], SurfaceTagList)
+#     gmsh.model.addPhysicalGroup(2, SurfaceTagList, tag=MATERIAL[i]['tag'], name=MATERIAL[i]['name'])
 
 # Definir ordem dos elementos
 gmsh.option.setNumber("Mesh.MeshSizeMax", h)
