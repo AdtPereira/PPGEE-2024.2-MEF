@@ -54,7 +54,7 @@ def gauss(n, a, b):
         x = 0.5 * A * x + 0.5 * (b + a)
     
     # Pesos de quadratura (quadrado da primeira linha de V)
-    w = (V[0, :] ** 2) * 2
+    w = (V[0, :] ** 2)
     
     return x, w, A
 
@@ -63,3 +63,44 @@ x, w, A = gauss(n=4, a=0, b=1)
 print("Pontos de quadratura:", x)
 print("Pesos de quadratura:", w)
 print("Área do domínio:", A)
+
+def gauss_quadrature_table():
+    # Tabela original para o intervalo [-1, 1]
+    gauss_points_original = {
+        1: ([0], [2]),
+        2: ([np.sqrt(1/3), -np.sqrt(1/3)], [1, 1]),
+        3: ([0, np.sqrt(3/5), -np.sqrt(3/5)], [8/9, 5/9, 5/9]),
+        4: (
+            [
+                np.sqrt(3/7 - 2/7 * np.sqrt(6/5)),
+                -np.sqrt(3/7 - 2/7 * np.sqrt(6/5)),
+                np.sqrt(3/7 + 2/7 * np.sqrt(6/5)),
+                -np.sqrt(3/7 + 2/7 * np.sqrt(6/5)),
+            ],
+            [
+                (18 + np.sqrt(30)) / 36,
+                (18 + np.sqrt(30)) / 36,
+                (18 - np.sqrt(30)) / 36,
+                (18 - np.sqrt(30)) / 36,
+            ],
+        ),
+    }
+
+    # Transformar para o intervalo [0, 1]
+    gauss_points_transformed = {}
+    for n, (points, weights) in gauss_points_original.items():
+        transformed_points = [(1 + p) / 2 for p in points]
+        transformed_weights = [w / 2 for w in weights]
+        gauss_points_transformed[n] = (transformed_points, transformed_weights)
+
+    return gauss_points_transformed
+
+# Gerar tabela para [0, 1]
+gauss_table = gauss_quadrature_table()
+
+# Exibir os pontos e pesos para cada ordem
+for n, (points, weights) in gauss_table.items():
+    print(f"Ordem {n}:")
+    print(f"Pontos: {points}")
+    print(f"Pesos: {weights}\n")
+
