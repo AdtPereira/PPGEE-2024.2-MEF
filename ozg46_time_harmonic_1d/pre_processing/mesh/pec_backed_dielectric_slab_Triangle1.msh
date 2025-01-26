@@ -7,7 +7,7 @@ $PhysicalNames
 0 102 "xL"
 0 301 "xa"
 1 201 "free_space"
-1 202 "lossy_slab"
+1 202 "pml"
 $EndPhysicalNames
 $Entities
 3 2 0 0
