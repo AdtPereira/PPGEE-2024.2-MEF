@@ -365,6 +365,8 @@
         "xmid",
         "xticks",
         "ymid",
+        "zlabel",
+        "zlim",
         "zorder"
     ],
     
