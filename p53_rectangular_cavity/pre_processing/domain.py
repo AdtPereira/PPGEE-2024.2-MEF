@@ -38,12 +38,11 @@ edgeTags, edgeNodes = gmsh.model.mesh.getAllEdges()
 print(f"Total number of edges: {len(edgeTags)}")
 
 # Criar edge_key_map diretamente sem edge_mapping
-edge_key_map = {tuple(sorted([edgeNodes[2*i], edgeNodes[2*i+1]])): tag
+edge_mapping = {tuple(sorted([edgeNodes[2*i], edgeNodes[2*i + 1]])): tag
                  for i, tag in enumerate(sorted(edgeTags))}
-print(f"edge_key_map:\n {edge_key_map}")
+print(f"edge_key_map:\n {edge_mapping}")
 print("----------- Ending of edge mapping --------------------")
 
-print("\n----------- Beginning of Boundary DimTags --------------------")
 # Obter os contornos (superfícies, dim=2) do volume
 BoundaryDimTags = gmsh.model.getBoundary([(3, TagVolume)], oriented=True, recursive=False)
 print(f"BoundaryDimTags: {BoundaryDimTags}")
@@ -56,17 +55,16 @@ gmsh.model.addPhysicalGroup(dim=2, tags=BoundaryTags, tag=BOUNDARY[0]['tag'], na
 
 # Adicionar grupos físicos para Dim=3 (volume)
 gmsh.model.addPhysicalGroup(dim=3, tags=[TagVolume], tag=MATERIAL[0]['tag'], name=MATERIAL[0]['name'])
-print("----------- Ending of Boundary DimTags --------------------")
 
 ## ------------------##
 ## `get_cell_data()` ##
 ## ------------------##
 
 # 1. Obter os elementos da malha
-elemTypes, elemTags, nodeTags = gmsh.model.mesh.getElements(dim=3)
-print(f"elemTypes with dim 3: {elemTypes}")
-print(f"elemTags with dim 3: {elemTags}")
-print(f"len(elemTags[0]): {len(elemTags[0])}")
+elementTypes, elementTags, nodeTags = gmsh.model.mesh.getElements(dim=3)
+print(f"elemTypes with dim 3: {elementTypes}")
+print(f"elemTags with dim 3: {elementTags}")
+print(f"len(elemTags[0]): {len(elementTags[0])}")
 print(f"elemNodeTags: {nodeTags}")
 print(f"len(nodeTags[0]): {len(nodeTags[0])}")
 conn_dict = {}
@@ -77,62 +75,102 @@ print(f"Entities with dim 1 (Edges): {gmsh.model.getEntities(dim=1)}")
 print(f"Entities with dim 2 (Faces): {gmsh.model.getEntities(dim=2)}")
 print(f"Entities with dim 3 (Regions): {gmsh.model.getEntities(dim=3)}")
 
-# 3. Criar um mapa entre cada entidade física (grupo físico) e os elementos correspondentes
+# 3. Criar o dicionário mesh_data['cell]
 print("\nMaterial Physical groups with dim=3:")
-material_dim3 = {}
+cell_data = {}
 
-for mat in MATERIAL:
-    MaterialEntitiesTags = gmsh.model.getEntitiesForPhysicalGroup(dim=3, tag=mat['tag'])
-    print(f"Entities of {mat['name']} with dim3: {MaterialEntitiesTags}")
+for material in MATERIAL:
+    # Obter as entidades físicas (grupo físico) associadas ao material
+    MaterialEntitiesTags = gmsh.model.getEntitiesForPhysicalGroup(dim=3, tag=material['tag'])
+    print(f"Entities of {material['name']} with dim3: {MaterialEntitiesTags}")
     
     for EntityTag in MaterialEntitiesTags:
-        elemTypes, elemTags, nodeTags = gmsh.model.mesh.getElements(dim=3, tag=EntityTag)
-        print(f"mesh_elements of entity (dim, tag) = (3, {EntityTag}): elemTags = {elemTags[0]}")
-        print(f"mesh_elements of entity (dim, tag) = (3, {EntityTag}): nodeTags = {nodeTags[0]}")
+        elementTypes, elementTags, nodeTags = gmsh.model.mesh.getElements(dim=3, tag=EntityTag)
+        print(f"mesh_elements of entity (dim, tag) = (3, {EntityTag}): elemTags = {elementTags}")
+        print(f"mesh_elements of entity (dim, tag) = (3, {EntityTag}): nodeTags = {nodeTags}")
         
-        # Criar dicionário associando cada elemento à sua conectividade de nós
-        for i, elemTag in enumerate(elemTags[0]):
-            node_conn = list(sorted(nodeTags[0][4 * i : 4 * (i + 1)])) # Tetrahedron element
-            edge_conn = [
-                edge_key_map[(node_conn[0], node_conn[1])],  # e1: 1 -> 2
-                edge_key_map[(node_conn[0], node_conn[2])],  # e2: 1 -> 3
-                edge_key_map[(node_conn[0], node_conn[3])],  # e3: 1 -> 4
-                edge_key_map[(node_conn[1], node_conn[2])],  # e4: 2 -> 3
-                edge_key_map[(node_conn[1], node_conn[3])],  # e5: 2 -> 4
-                edge_key_map[(node_conn[2], node_conn[3])]   # e6: 3 -> 4
-            ]
-            material_dim3[elemTag] = {
-                'node_conn': node_conn,
-                'edge_conn': edge_conn,
-                'bc_tag': mat['tag']}
-print(f"material_dim3: {material_dim3}")
+        for elemType, elemTag, elemNode in zip(elementTypes, elementTags, nodeTags):            
+            # Obter as propriedades do elemento
+            _, _, _, nodes_per_element, _, _ = gmsh.model.mesh.getElementProperties(elemType)
+
+            # Número de elementos
+            N_tet = len(elemNode) // nodes_per_element
+
+            # Criar dicionário associando cada elemento à sua conectividade de nós
+            for i, Tag in enumerate(elemTag):                
+                # Obter a conectividade do elemento
+                # conn_node = list(sorted(elemNodes[0][4 * i : 4 * (i + 1)])) 
+                conn_node = elemNode[nodes_per_element * i: nodes_per_element * (i + 1)].tolist()
+                conn_std = sorted(conn_node)
+
+                # Tetrahedron element
+                if nodes_per_element == 4:
+                    conn_edge = [
+                        edge_mapping[(conn_std[0], conn_std[1])],  # e1: 1 -> 2
+                        edge_mapping[(conn_std[0], conn_std[2])],  # e2: 1 -> 3
+                        edge_mapping[(conn_std[0], conn_std[3])],  # e3: 1 -> 4
+                        edge_mapping[(conn_std[1], conn_std[2])],  # e4: 2 -> 3
+                        edge_mapping[(conn_std[1], conn_std[3])],  # e5: 2 -> 4
+                        edge_mapping[(conn_std[2], conn_std[3])]   # e6: 3 -> 4
+                    ]
+                
+                # Adicionar ao dicionário de células
+                cell_data[i+1] = {
+                    'tag': Tag,
+                    'conn': conn_node,
+                    'conn_sorted': conn_std,
+                    'conn_edge': conn_edge,
+                    # 'geo': {'centroid': None, 'dim': None},
+                    # 'contour': {'type': None, 'conn_contour': None},
+                    'material': material['tag']}
+
+print(f"cell_data for dim3: {cell_data}")
             
 # 4. Criar um mapa entre cada entidade física (grupo físico) e os elementos correspondentes
 print("\nBoundary Physical groups with dim2:")
-boundary_dim2 = {}
+boundary_data = {}
 
 for bc in BOUNDARY:
+    # Obter as entidades físicas (grupo físico) associadas ao contorno
     BoundaryEntitiesTags = gmsh.model.getEntitiesForPhysicalGroup(dim=2, tag=bc['tag'])
     print(f"Entities of {bc['name']} with dim2: {BoundaryEntitiesTags}")
     
     for EntityTag in BoundaryEntitiesTags:
-        elemTypes, elemTags, nodeTags = gmsh.model.mesh.getElements(dim=2, tag=EntityTag)
-        print(f"mesh_elements of entity (dim, tag) = (2, {EntityTag}): elemTags = {elemTags[0]} | nodeTags = {nodeTags[0]}")
+        elementTypes, elementTags, nodeTags = gmsh.model.mesh.getElements(dim=2, tag=EntityTag)
+        print(f"mesh_elements of entity (dim, tag) = (2, {EntityTag}): elemTags = {elementTags}")
+        print(f"mesh_elements of entity (dim, tag) = (2, {EntityTag}): nodeTags = {nodeTags}")
+        
+        for elemType, elemTag, elemNode in zip(elementTypes, elementTags, nodeTags):   
+            # Obter as propriedades do elemento
+            _, _, _, nodes_per_element, _, _ = gmsh.model.mesh.getElementProperties(elemType)
 
-        # Criar dicionário associando cada elemento à sua conectividade de nós
-        for i, elemTag in enumerate(elemTags[0]):
-            node_conn = list(sorted(nodeTags[0][3 * i : 3 * (i + 1)]))
-            edge_conn = [
-                edge_key_map[(node_conn[0], node_conn[1])],  # e1: 1 -> 2
-                edge_key_map[(node_conn[0], node_conn[2])],  # e2: 1 -> 3
-                edge_key_map[(node_conn[1], node_conn[2])],  # e3: 2 -> 3
-            ]
-            boundary_dim2[elemTag] = {
-                'node_conn': node_conn,
-                'edge_conn': edge_conn,
-                'bc_tag': bc['tag']}
+            # Número de elementos
+            N_tri = len(elemNode) // nodes_per_element             
 
-print(f"boundary_dim2: {boundary_dim2}")
+            # Criar dicionário associando cada elemento à sua conectividade de nós
+            for i, Tag in enumerate(elemTag):    
+                # Obter a conectividade do elemento            
+                # conn_node = list(sorted(nodeTags[0][3 * i : 3 * (i + 1)]))
+                conn_node = elemNode[nodes_per_element * i: nodes_per_element * (i + 1)].tolist()
+                conn_std = sorted(conn_node)
+
+                # Triangular element
+                if nodes_per_element == 3:
+                    conn_edge = [
+                        edge_mapping[(conn_std[0], conn_std[1])],  # e1: 1 -> 2
+                        edge_mapping[(conn_std[0], conn_std[2])],  # e2: 1 -> 3
+                        edge_mapping[(conn_std[1], conn_std[2])],  # e3: 2 -> 3
+                    ]
+
+                # Dicionário de contorno
+                boundary_data[Tag] = {
+                    'tag': Tag,
+                    'conn': conn_node,
+                    'conn_sorted': conn_std,
+                    'conn_edge': conn_edge,
+                    'boundary': bc['tag']}
+
+print(f"boundary data for dim2: {boundary_data}")
 
 # Visualizar a malha no ambiente Gmsh (opcional)
 # gmsh.fltk.run()
