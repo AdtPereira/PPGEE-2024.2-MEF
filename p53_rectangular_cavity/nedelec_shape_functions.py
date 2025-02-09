@@ -60,4 +60,4 @@ def plot_shape_functions_n0_tetra(idx_selected=None):
     plt.show()
 
 # Exemplo de uso: plotar apenas a função de forma 1
-plot_shape_functions_n0_tetra(idx_selected=2)
+plot_shape_functions_n0_tetra(idx_selected=0)

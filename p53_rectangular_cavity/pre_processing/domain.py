@@ -36,13 +36,29 @@ print("\n----------- Beginning of edge mapping --------------------")
 gmsh.model.mesh.createEdges()
 edgeTags, edgeNodes = gmsh.model.mesh.getAllEdges()
 print(f"Total number of edges: {len(edgeTags)}")
+print(f"Total number of edgeNodes: {len(edgeNodes)}")
 
-# Criar edge_key_map diretamente sem edge_mapping
+# Criar edge_mapping
 edge_mapping = {tuple(sorted([edgeNodes[2*i], edgeNodes[2*i + 1]])): tag
                  for i, tag in enumerate(sorted(edgeTags))}
-print(f"edge_key_map:\n {edge_mapping}")
+print(f"edge_mapping:\n {edge_mapping}")
 print("----------- Ending of edge mapping --------------------")
 
+print("\n----------- Beginning of Face mapping --------------------")
+# If all you need is the list of all edges or faces in terms of their nodes:
+# gmsh.model.mesh.createEdges([(3, 1)])
+gmsh.model.mesh.createFaces()
+faceTags, faceNodes = gmsh.model.mesh.getAllFaces(3)
+print(f"Total number of faces: {len(faceTags)}")
+print(f"Total number of faceNodes: {len(faceNodes)}")
+
+# Criar face_mapping
+face_mapping = {tuple(sorted([faceNodes[3*i], faceNodes[3*i + 1], faceNodes[3*i + 2]])): tag
+                 for i, tag in enumerate(sorted(faceTags))}
+print(f"face_mapping:\n {face_mapping}")
+print("----------- Ending of edge mapping --------------------")
+
+print("\n----------- Beginning of Boundary mapping --------------------")
 # Obter os contornos (superfícies, dim=2) do volume
 BoundaryDimTags = gmsh.model.getBoundary([(3, TagVolume)], oriented=True, recursive=False)
 print(f"BoundaryDimTags: {BoundaryDimTags}")
@@ -70,13 +86,14 @@ print(f"len(nodeTags[0]): {len(nodeTags[0])}")
 conn_dict = {}
 
 # 2. Obter as entidades geometricas do modelo
-print(f"Entities with dim 0 (Points): {gmsh.model.getEntities(dim=0)}")
-print(f"Entities with dim 1 (Edges): {gmsh.model.getEntities(dim=1)}")
-print(f"Entities with dim 2 (Faces): {gmsh.model.getEntities(dim=2)}")
-print(f"Entities with dim 3 (Regions): {gmsh.model.getEntities(dim=3)}")
+print(f"Geometrical Entities with dim 0 (Points): {gmsh.model.getEntities(dim=0)}")
+print(f"Geometrical Entities with dim 1 (Edges): {gmsh.model.getEntities(dim=1)}")
+print(f"Geometrical Entities with dim 2 (Faces): {gmsh.model.getEntities(dim=2)}")
+print(f"Geometrical Entities with dim 3 (Regions): {gmsh.model.getEntities(dim=3)}")
+print("----------- Ending of edge mapping --------------------")
 
+print("\n----------- Beginning Material Physical groups with dim3 --------------------")
 # 3. Criar o dicionário mesh_data['cell]
-print("\nMaterial Physical groups with dim=3:")
 cell_data = {}
 
 for material in MATERIAL:
@@ -113,21 +130,31 @@ for material in MATERIAL:
                         edge_mapping[(conn_std[1], conn_std[3])],  # e5: 2 -> 4
                         edge_mapping[(conn_std[2], conn_std[3])]   # e6: 3 -> 4
                     ]
+
+                    # Conectividade de faces (cada face tem 3 nós)
+                    conn_face = [
+                        sorted([conn_node[0], conn_node[1], conn_node[2]]),  # Face 1
+                        sorted([conn_node[0], conn_node[1], conn_node[3]]),  # Face 2
+                        sorted([conn_node[0], conn_node[2], conn_node[3]]),  # Face 3
+                        sorted([conn_node[1], conn_node[2], conn_node[3]])   # Face 4
+                    ]
                 
                 # Adicionar ao dicionário de células
-                cell_data[i+1] = {
+                cell_data[Tag] = {
                     'tag': Tag,
                     'conn': conn_node,
                     'conn_sorted': conn_std,
                     'conn_edge': conn_edge,
+                    'conn_face': conn_face,
                     # 'geo': {'centroid': None, 'dim': None},
                     # 'contour': {'type': None, 'conn_contour': None},
                     'material': material['tag']}
 
 print(f"cell_data for dim3: {cell_data}")
-            
+print("----------- Ending Material Physical groups --------------------")
+
+print("\n----------- Beginning Boundary Physical groups with dim2 --------------------")
 # 4. Criar um mapa entre cada entidade física (grupo físico) e os elementos correspondentes
-print("\nBoundary Physical groups with dim2:")
 boundary_data = {}
 
 for bc in BOUNDARY:
@@ -171,6 +198,7 @@ for bc in BOUNDARY:
                     'boundary': bc['tag']}
 
 print(f"boundary data for dim2: {boundary_data}")
+print("----------- Ending Boundary Physical groups with dim2 --------------------")
 
 # Visualizar a malha no ambiente Gmsh (opcional)
 # gmsh.fltk.run()
